@@ -1,0 +1,13 @@
+{
+  "name": "piko",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-10-01",
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  "kv_namespaces": [
+    { "binding": "PIKO_KV", "id": "9597433cf894446bb7c5c1e62b52997c" }
+  ]
+}

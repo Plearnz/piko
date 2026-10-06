@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>จัดการโจทย์ · PIKO Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script>(function(){var t=null;try{t=localStorage.getItem("piko.theme")}catch(e){}if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t);})();</script>
+<style>
+:root{
+  color-scheme:light;
+  --ink:#1B2333; --ink-2:#3A4252; --muted:#5B6475;
+  --bg:#FFFCEF; --paper:#FFFFFF; --line:#EDE3BF; --line-soft:#F1E9C9;
+  --sky:#8BBEEA; --sky-2:#7AB2E3; --sky-soft:#E3F0FB; --sky-ink:#1F4E9C;
+  --peach:#FDE7CF; --peach-ink:#5A3A10;
+  --ok:#1F6B44; --ok-bg:#EEF8F2; --bad:#A3261A; --bad-bg:#FDEDE8; --warn-bg:#FFF4E5;
+  --code-bg:#22304A; --code-ink:#E8EEF8;
+  --font:'IBM Plex Sans Thai',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ink:#EEF1F7; --ink-2:#C9D0DE; --muted:#A4ADBF;
+    --bg:#141A27; --paper:#1C2434; --line:#2E3850; --line-soft:#263047;
+    --sky:#5B8DC0; --sky-2:#6C9DD0; --sky-soft:#1F3047; --sky-ink:#A9CFF0;
+    --peach:#3A2B1A; --peach-ink:#F5D9A8;
+    --ok:#7FD0A3; --ok-bg:#16301F; --bad:#FF9C8F; --bad-bg:#3A1C18; --warn-bg:#33281A;
+    --code-bg:#0F1624; --code-ink:#E8EEF8;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ink:#EEF1F7; --ink-2:#C9D0DE; --muted:#A4ADBF;
+  --bg:#141A27; --paper:#1C2434; --line:#2E3850; --line-soft:#263047;
+  --sky:#5B8DC0; --sky-2:#6C9DD0; --sky-soft:#1F3047; --sky-ink:#A9CFF0;
+  --peach:#3A2B1A; --peach-ink:#F5D9A8;
+  --ok:#7FD0A3; --ok-bg:#16301F; --bad:#FF9C8F; --bad-bg:#3A1C18; --warn-bg:#33281A;
+  --code-bg:#0F1624; --code-ink:#E8EEF8;
+}
+*{box-sizing:border-box}
+html{background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.6 var(--font)}
+[hidden]{display:none!important}
+a{color:var(--sky-ink)}
+.wrap{max-width:1200px;margin:0 auto;padding:0 16px 48px}
+header.top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 0}
+header.top h1{font-size:1.25rem;margin:0;font-weight:600}
+header.top .sp{flex:1}
+.badge{display:inline-block;font-size:.75rem;padding:2px 10px;border-radius:99px;background:var(--peach);color:var(--peach-ink);font-weight:600}
+button,.btn{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--paper);color:var(--ink);padding:8px 14px;border-radius:10px;min-height:40px}
+button:hover{border-color:var(--sky)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid var(--sky);outline-offset:1px}
+button.primary{background:var(--sky);border-color:var(--sky);color:#1B2333;font-weight:600}
+button.primary:hover{background:var(--sky-2)}
+button.danger{color:var(--bad)}
+button.small{padding:4px 10px;min-height:32px;font-size:.875rem}
+button[disabled]{opacity:.55;cursor:not-allowed}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:20px}
+label{display:block;font-weight:500;margin:0 0 4px}
+.hint{color:var(--muted);font-size:.875rem;margin:4px 0 0}
+input[type=text],input[type=password],input[type=number],select,textarea{
+  width:100%;font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+textarea{resize:vertical;min-height:84px}
+textarea.code,input.code{font-family:var(--mono);font-size:.9rem;line-height:1.5}
+.field{margin-bottom:16px}
+.field.invalid input,.field.invalid select,.field.invalid textarea{border-color:var(--bad)}
+.err{color:var(--bad);font-size:.875rem;margin:4px 0 0}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row3{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:12px}
+@media (max-width:640px){.row,.row3{grid-template-columns:1fr}}
+
+/* login */
+#login{max-width:420px;margin:12vh auto 0}
+#login h2{margin:0 0 4px;font-size:1.25rem}
+#login p{margin:0 0 16px;color:var(--muted)}
+.msg{margin:12px 0 0;padding:10px 12px;border-radius:10px;font-size:.9375rem}
+.msg.bad{background:var(--bad-bg);color:var(--bad)}
+.msg.ok{background:var(--ok-bg);color:var(--ok)}
+.msg.warn{background:var(--warn-bg);color:var(--peach-ink)}
+
+/* app */
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:16px;position:sticky;top:0;z-index:5;background:var(--bg);padding:8px 0}
+.toolbar .sp{flex:1}
+#status{font-size:.9375rem;color:var(--muted)}
+#status.dirty{color:var(--peach-ink);font-weight:600}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) #status.dirty{color:#F5D9A8}}
+:root[data-theme="dark"] #status.dirty{color:#F5D9A8}
+.layout{display:grid;grid-template-columns:320px 1fr;gap:16px;align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:1fr}}
+.list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.list li{display:flex;gap:6px;align-items:stretch}
+.item{flex:1;text-align:left;display:flex;gap:10px;align-items:center;padding:8px 10px;min-width:0}
+.item .n{flex:none;width:28px;height:28px;border-radius:50%;background:var(--sky-soft);color:var(--sky-ink);display:grid;place-items:center;font-size:.8125rem;font-weight:600}
+.item .t{min-width:0}
+.item b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item small{color:var(--muted);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item[aria-current=true]{border-color:var(--sky);background:var(--sky-soft)}
+.item.bad .n{background:var(--bad-bg);color:var(--bad)}
+.mv{display:grid;gap:4px}
+.mv button{padding:0 8px;min-height:20px;height:20px;line-height:1;font-size:.75rem}
+.sec{display:flex;align-items:center;gap:8px;margin:24px 0 8px}
+.sec h3{margin:0;font-size:1.0625rem}
+.sec .sp{flex:1}
+.test{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px;background:var(--bg)}
+.test header{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.test header b{flex:1}
+.preview{border:1px dashed var(--line);border-radius:10px;padding:10px 12px;margin-top:8px;background:var(--bg)}
+.preview code{font-family:var(--mono);background:var(--sky-soft);padding:1px 6px;border-radius:6px;color:var(--sky-ink)}
+.screen{background:var(--code-bg);color:var(--code-ink);border-radius:10px;padding:10px 12px;font-family:var(--mono);font-size:.875rem;white-space:pre-wrap;margin:6px 0 0}
+.empty{text-align:center;color:var(--muted);padding:32px 12px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>จัดการโจทย์ <span class="badge">Admin</span></h1>
+    <span class="sp"></span>
+    <a href="index.html">← กลับหน้าเว็บ PIKO</a>
+    <button type="button" id="logout" hidden>ออกจากระบบ Admin</button>
+  </header>
+
+  <!-- ล็อกอิน -->
+  <section id="login" class="card" aria-labelledby="login-h">
+    <h2 id="login-h">เข้าสู่ระบบ Admin</h2>
+    <p>เฉพาะผู้ดูแลเท่านั้นที่เพิ่มหรือแก้ไขโจทย์ได้</p>
+    <form id="login-form" autocomplete="off">
+      <div class="field">
+        <label for="pw">รหัสผ่าน Admin</label>
+        <input id="pw" type="password" autocomplete="current-password" required>
+      </div>
+      <button class="primary" type="submit" id="login-btn" style="width:100%">เข้าสู่ระบบ</button>
+      <div id="login-msg" class="msg bad" role="alert" hidden></div>
+    </form>
+  </section>
+
+  <!-- แอปแก้ไข -->
+  <section id="app" hidden>
+    <div class="toolbar">
+      <button class="primary" type="button" id="save">บันทึกขึ้นเว็บ</button>
+      <button type="button" id="add">+ เพิ่มโจทย์</button>
+      <button type="button" id="export">สำรองข้อมูล (JSON)</button>
+      <button type="button" id="import">นำเข้า JSON</button>
+      <input type="file" id="import-file" accept="application/json,.json" class="sr-only" tabindex="-1">
+      <span class="sp"></span>
+      <span id="status" role="status" aria-live="polite"></span>
+    </div>
+    <div id="app-msg" class="msg" role="status" hidden></div>
+
+    <div class="layout">
+      <aside class="card" aria-label="รายการโจทย์">
+        <ul class="list" id="list"></ul>
+        <p class="hint" id="list-hint"></p>
+      </aside>
+
+      <main class="card" id="editor" aria-label="แก้ไขโจทย์"></main>
+    </div>
+  </section>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var TOKEN_KEY = 'piko.admin.token';
+  var LEVELS = ['ง่าย', 'กลาง', 'ยาก'];
+  var ID_RE = /^[a-z0-9][a-z0-9_-]{0,39}$/;
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+
+  var state = { list: [], sel: 0, dirty: false, token: null, usingDefault: false };
+
+  /* ---------- token ---------- */
+  function loadToken() {
+    try {
+      var t = JSON.parse(sessionStorage.getItem(TOKEN_KEY) || 'null');
+      if (t && t.token && t.expiresAt > Date.now()) return t.token;
+    } catch (e) {}
+    return null;
+  }
+  function saveToken(t) { try { sessionStorage.setItem(TOKEN_KEY, JSON.stringify(t)); } catch (e) {} }
+  function clearToken() { try { sessionStorage.removeItem(TOKEN_KEY); } catch (e) {} }
+
+  /* ---------- helpers ---------- */
+  function show(el, on) { el.hidden = !on; }
+  function setMsg(kind, text) {
+    var m = $('#app-msg');
+    if (!text) { m.hidden = true; return; }
+    m.className = 'msg ' + kind; m.textContent = text; m.hidden = false;
+  }
+  function setStatus() {
+    var s = $('#status');
+    s.className = state.dirty ? 'dirty' : '';
+    s.textContent = state.dirty ? 'มีการแก้ไขที่ยังไม่ได้บันทึก' : (state.usingDefault ? 'ยังไม่เคยบันทึก (กำลังใช้โจทย์เริ่มต้น)' : 'บันทึกล่าสุดแล้ว');
+  }
+  function markDirty() { state.dirty = true; setStatus(); }
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function el(tag, attrs, text) {
+    var e = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) { e.setAttribute(k, attrs[k]); });
+    if (text != null) e.textContent = text;
+    return e;
+  }
+
+  /* ---------- validation (เหมือนฝั่งเซิร์ฟเวอร์) ---------- */
+  function validateOne(x, all) {
+    var errs = {};
+    if (!ID_RE.test(x.id || '')) errs.id = 'ใช้ a-z 0-9 _ - ได้ ไม่เกิน 40 ตัว และขึ้นต้นด้วยตัวอักษรหรือตัวเลข';
+    else if (all.filter(function (o) { return o.id === x.id; }).length > 1) errs.id = 'id ซ้ำกับข้ออื่น';
+    if (!x.title || !x.title.trim()) errs.title = 'ต้องมีชื่อโจทย์';
+    if (LEVELS.indexOf(x.level) === -1) errs.level = 'เลือกระดับ';
+    if (!x.tests.length) errs.tests = 'ต้องมี test case อย่างน้อย 1 ชุด';
+    return errs;
+  }
+  function firstInvalid() {
+    for (var i = 0; i < state.list.length; i++) {
+      var e = validateOne(state.list[i], state.list);
+      var k = Object.keys(e);
+      if (k.length) return { index: i, msg: 'ข้อ ' + (i + 1) + ': ' + e[k[0]] };
+    }
+    return null;
+  }
+
+  /* ---------- API ---------- */
+  async function api(path, opts) {
+    opts = opts || {};
+    var headers = { 'content-type': 'application/json' };
+    if (state.token) headers.authorization = 'Bearer ' + state.token;
+    var res = await fetch(path, { method: opts.method || 'GET', headers: headers, body: opts.body, cache: 'no-store' });
+    var data = null;
+    try { data = await res.json(); } catch (e) {}
+    if (!res.ok) { var err = new Error((data && data.error) || ('เกิดข้อผิดพลาด (' + res.status + ')')); err.status = res.status; throw err; }
+    return data;
+  }
+
+  /* ---------- login ---------- */
+  $('#login-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var btn = $('#login-btn'), msg = $('#login-msg');
+    btn.disabled = true; msg.hidden = true;
+    try {
+      var d = await api('api/admin/login', { method: 'POST', body: JSON.stringify({ password: $('#pw').value }) });
+      saveToken(d); state.token = d.token; $('#pw').value = '';
+      await enterApp();
+    } catch (err) {
+      msg.textContent = err.status === 404 || err instanceof TypeError ? 'เชื่อมต่อระบบหลังบ้านไม่ได้ (ตรวจว่าอัพขึ้น Cloudflare Pages พร้อมไฟล์ _worker.js แล้ว)' : err.message;
+      msg.hidden = false;
+    } finally { btn.disabled = false; }
+  });
+  function logout() {
+    clearToken(); state.token = null;
+    show($('#app'), false); show($('#login'), true); show($('#logout'), false);
+    $('#pw').focus();
+  }
+  $('#logout').addEventListener('click', function () {
+    if (state.dirty && !confirm('มีการแก้ไขที่ยังไม่ได้บันทึก ออกจากระบบแล้วจะหายทั้งหมด ต้องการออกใช่ไหม?')) return;
+    state.dirty = false; logout();
+  });
+
+  /* ---------- load data ---------- */
+  function loadDefaults() {
+    return new Promise(function (resolve) {
+      window.PIKO_LANG = 'th';
+      var s = document.createElement('script');
+      s.src = 'js/exercises-data.js';
+      s.onload = function () { resolve(clone(window.PIKO_EXERCISES || [])); };
+      s.onerror = function () { resolve([]); };
+      document.head.appendChild(s);
+    });
+  }
+  async function enterApp() {
+    show($('#login'), false); show($('#app'), true); show($('#logout'), true);
+    setMsg('', '');
+    try {
+      var d = await api('api/exercises');
+      if (d && Array.isArray(d.exercises) && d.exercises.length) { state.list = d.exercises; state.usingDefault = false; }
+      else { state.list = await loadDefaults(); state.usingDefault = true; }
+    } catch (err) {
+      state.list = await loadDefaults(); state.usingDefault = true;
+      setMsg('warn', 'โหลดโจทย์จากเซิร์ฟเวอร์ไม่สำเร็จ: ' + err.message);
+    }
+    state.list.forEach(normalize);
+    state.sel = 0; state.dirty = false;
+    renderAll(); setStatus();
+  }
+  function normalize(x) {
+    x.id = x.id || ''; x.title = x.title || ''; x.topic = x.topic || ''; x.level = LEVELS.indexOf(x.level) === -1 ? 'ง่าย' : x.level;
+    x.desc = x.desc || ''; x.starter = x.starter || '';
+    x.tests = Array.isArray(x.tests) ? x.tests : [];
+    x.tests.forEach(function (t) { t.inputs = Array.isArray(t.inputs) ? t.inputs.map(String) : []; t.expected = t.expected == null ? '' : String(t.expected); });
+    x.sample = Number.isInteger(x.sample) ? x.sample : 1;
+  }
+
+  /* ---------- list ---------- */
+  function renderList() {
+    var ul = $('#list'); ul.innerHTML = '';
+    state.list.forEach(function (x, i) {
+      var li = el('li');
+      var bad = Object.keys(validateOne(x, state.list)).length > 0;
+      var b = el('button', { type: 'button', class: 'item' + (bad ? ' bad' : '') });
+      if (i === state.sel) b.setAttribute('aria-current', 'true');
+      b.appendChild(el('span', { class: 'n', 'aria-hidden': 'true' }, String(i + 1)));
+      var t = el('span', { class: 't' });
+      t.appendChild(el('b', null, x.title || '(ยังไม่มีชื่อ)'));
+      t.appendChild(el('small', null, (x.topic || '-') + ' · ' + x.level));
+      b.appendChild(t);
+      b.addEventListener('click', function () { state.sel = i; renderAll(); });
+      var mv = el('div', { class: 'mv' });
+      var up = el('button', { type: 'button', 'aria-label': 'เลื่อนขึ้น' }, '▲');
+      var dn = el('button', { type: 'button', 'aria-label': 'เลื่อนลง' }, '▼');
+      up.disabled = i === 0; dn.disabled = i === state.list.length - 1;
+      up.addEventListener('click', function () { move(i, -1); });
+      dn.addEventListener('click', function () { move(i, 1); });
+      mv.appendChild(up); mv.appendChild(dn);
+      li.appendChild(b); li.appendChild(mv); ul.appendChild(li);
+    });
+    $('#list-hint').textContent = state.list.length ? 'ทั้งหมด ' + state.list.length + ' ข้อ · ลำดับในรายการคือลำดับข้อที่นักศึกษาเห็น' : '';
+  }
+  function move(i, d) {
+    var j = i + d; if (j < 0 || j >= state.list.length) return;
+    var t = state.list[i]; state.list[i] = state.list[j]; state.list[j] = t;
+    if (state.sel === i) state.sel = j; else if (state.sel === j) state.sel = i;
+    markDirty(); renderAll();
+  }
+
+  /* ---------- editor ---------- */
+  function field(id, label, input, hint) {
+    var f = el('div', { class: 'field', id: 'f-' + id });
+    var l = el('label', { for: 'in-' + id }, label);
+    input.id = 'in-' + id;
+    f.appendChild(l); f.appendChild(input);
+    if (hint) f.appendChild(el('p', { class: 'hint' }, hint));
+    f.appendChild(el('p', { class: 'err', hidden: '' }));
+    return f;
+  }
+  function showErr(id, text) {
+    var f = $('#f-' + id); if (!f) return;
+    var p = $('.err', f);
+    f.classList.toggle('invalid', !!text);
+    p.hidden = !text; p.textContent = text || '';
+  }
+  function refreshValidation() {
+    var x = state.list[state.sel]; if (!x) return;
+    var e = validateOne(x, state.list);
+    showErr('id', e.id); showErr('title', e.title);
+    renderList();
+  }
+  function renderPreview() {
+    var x = state.list[state.sel]; if (!x) return;
+    var box = $('#desc-preview'); if (box) box.innerHTML = x.desc || '<span class="hint">(ยังไม่มีคำอธิบาย)</span>';
+    var s = $('#sample-preview');
+    if (s) {
+      var t = x.tests[0];
+      s.textContent = t ? sampleText(t) : '';
+    }
+  }
+  // แสดงผลบนหน้าจอคร่าวๆ (ค่าที่ผู้ใช้พิมพ์ต่อท้าย prompt ในบรรทัดเดียวกัน) เพื่อให้แอดมินเห็นภาพ
+  function sampleText(t) { return t.expected; }
+
+  function renderEditor() {
+    var box = $('#editor'); box.innerHTML = '';
+    var x = state.list[state.sel];
+    if (!x) { box.appendChild(el('div', { class: 'empty' }, 'ยังไม่มีโจทย์ กด “+ เพิ่มโจทย์” เพื่อเริ่มต้น')); return; }
+
+    var h = el('div', { class: 'sec', style: 'margin-top:0' });
+    h.appendChild(el('h3', null, 'ข้อ ' + (state.sel + 1)));
+    h.appendChild(el('span', { class: 'sp' }));
+    var dup = el('button', { type: 'button', class: 'small' }, 'ทำสำเนา');
+    var del = el('button', { type: 'button', class: 'small danger' }, 'ลบโจทย์นี้');
+    dup.addEventListener('click', duplicateCurrent); del.addEventListener('click', deleteCurrent);
+    h.appendChild(dup); h.appendChild(del);
+    box.appendChild(h);
+
+    var row = el('div', { class: 'row' });
+    var inId = el('input', { type: 'text', class: 'code', maxlength: '40', autocomplete: 'off', spellcheck: 'false' }); inId.value = x.id;
+    inId.addEventListener('input', function () { x.id = inId.value.trim(); markDirty(); refreshValidation(); });
+    row.appendChild(field('id', 'รหัสโจทย์ (id)', inId, 'ภาษาอังกฤษพิมพ์เล็ก ใช้ในลิงก์ เช่น fizzbuzz · อย่าเปลี่ยนถ้าเปิดใช้แล้ว เพราะคะแนนที่นักศึกษาทำไว้ผูกกับ id นี้'));
+    var inTitle = el('input', { type: 'text', maxlength: '120' }); inTitle.value = x.title;
+    inTitle.addEventListener('input', function () { x.title = inTitle.value; markDirty(); refreshValidation(); });
+    row.appendChild(field('title', 'ชื่อโจทย์', inTitle));
+    box.appendChild(row);
+
+    var row2 = el('div', { class: 'row' });
+    var inTopic = el('input', { type: 'text', maxlength: '120' }); inTopic.value = x.topic;
+    inTopic.addEventListener('input', function () { x.topic = inTopic.value; markDirty(); renderList(); });
+    row2.appendChild(field('topic', 'หัวข้อ', inTopic, 'เช่น คำสั่ง print, ลูป for'));
+    var sel = el('select');
+    LEVELS.forEach(function (l) { var o = el('option', { value: l }, l); if (l === x.level) o.selected = true; sel.appendChild(o); });
+    sel.addEventListener('change', function () { x.level = sel.value; markDirty(); renderList(); });
+    row2.appendChild(field('level', 'ระดับความยาก', sel));
+    box.appendChild(row2);
+
+    var inDesc = el('textarea', { class: 'code', rows: '5', spellcheck: 'false' }); inDesc.value = x.desc;
+    inDesc.addEventListener('input', function () { x.desc = inDesc.value; markDirty(); renderPreview(); });
+    var fDesc = field('desc', 'คำอธิบายโจทย์ (HTML)', inDesc, 'ใช้แท็ก HTML ได้ เช่น <code>…</code> สำหรับโค้ด, <b>…</b> ตัวหนา, <br> ขึ้นบรรทัดใหม่');
+    fDesc.insertBefore(el('div', { class: 'preview', id: 'desc-preview', 'aria-label': 'ตัวอย่างคำอธิบาย' }), $('.err', fDesc));
+    box.appendChild(fDesc);
+
+    var inStarter = el('textarea', { class: 'code', rows: '4', spellcheck: 'false' }); inStarter.value = x.starter;
+    inStarter.addEventListener('input', function () { x.starter = inStarter.value; markDirty(); });
+    box.appendChild(field('starter', 'โค้ดเริ่มต้นในช่องเขียนโค้ด', inStarter, 'ปล่อยว่างได้'));
+
+    // tests
+    var sec = el('div', { class: 'sec' });
+    sec.appendChild(el('h3', null, 'Test case (' + x.tests.length + ')'));
+    sec.appendChild(el('span', { class: 'sp' }));
+    var addT = el('button', { type: 'button', class: 'small' }, '+ เพิ่ม test case');
+    addT.addEventListener('click', function () { x.tests.push({ inputs: [], expected: '' }); markDirty(); renderEditor(); renderPreview(); renderList(); });
+    sec.appendChild(addT);
+    box.appendChild(sec);
+    var info = el('p', { class: 'hint', style: 'margin-top:-4px' });
+    info.textContent = 'inputs = ค่าที่โปรแกรมจะได้รับจาก input() ทีละบรรทัด · expected = ข้อความทั้งหมดที่ต้องขึ้นบนหน้าจอ โดยค่าที่ผู้ใช้พิมพ์จะต่อท้าย prompt ในบรรทัดเดียวกัน เช่น input "7" กับ prompt "Input your old: " ได้ expected = "Input your old: 7"';
+    box.appendChild(info);
+
+    x.tests.forEach(function (t, j) {
+      var card = el('div', { class: 'test' });
+      var hd = el('header');
+      hd.appendChild(el('b', null, 'Test case ' + (j + 1) + (j < x.sample ? ' · ใช้เป็นตัวอย่าง' : '')));
+      var rm = el('button', { type: 'button', class: 'small danger' }, 'ลบ');
+      rm.disabled = x.tests.length <= 1;
+      rm.addEventListener('click', function () {
+        x.tests.splice(j, 1);
+        if (x.sample > x.tests.length) x.sample = x.tests.length;
+        markDirty(); renderEditor(); renderPreview(); renderList();
+      });
+      hd.appendChild(rm); card.appendChild(hd);
+
+      var r = el('div', { class: 'row' });
+      var fi = el('div', { class: 'field' });
+      fi.appendChild(el('label', { for: 'ti-' + j }, 'inputs (หนึ่งค่าต่อหนึ่งบรรทัด)'));
+      var ti = el('textarea', { id: 'ti-' + j, class: 'code', rows: '3', spellcheck: 'false' }); ti.value = t.inputs.join('\n');
+      ti.addEventListener('input', function () { t.inputs = ti.value === '' ? [] : ti.value.split('\n'); markDirty(); });
+      fi.appendChild(ti); fi.appendChild(el('p', { class: 'hint' }, 'ว่าง = โปรแกรมไม่เรียก input()'));
+      var fe = el('div', { class: 'field' });
+      fe.appendChild(el('label', { for: 'te-' + j }, 'expected (ผลบนหน้าจอ)'));
+      var te = el('textarea', { id: 'te-' + j, class: 'code', rows: '3', spellcheck: 'false' }); te.value = t.expected;
+      te.addEventListener('input', function () { t.expected = te.value; markDirty(); if (j === 0) renderPreview(); });
+      fe.appendChild(te);
+      r.appendChild(fi); r.appendChild(fe); card.appendChild(r);
+      box.appendChild(card);
+    });
+
+    var fs = el('div', { class: 'field', style: 'max-width:280px' });
+    fs.appendChild(el('label', { for: 'in-sample' }, 'จำนวน test case แรกที่ใช้เป็นตัวอย่าง'));
+    var inS = el('input', { type: 'number', min: '1', max: String(Math.max(1, x.tests.length)) }); inS.id = 'in-sample'; inS.value = x.sample;
+    inS.addEventListener('change', function () {
+      var v = parseInt(inS.value, 10); if (!(v >= 1)) v = 1; if (v > x.tests.length) v = x.tests.length;
+      x.sample = v; inS.value = v; markDirty(); renderEditor();
+    });
+    fs.appendChild(inS);
+    fs.appendChild(el('p', { class: 'hint' }, 'ปุ่ม “ทดสอบตัวอย่าง” ของนักศึกษาจะรันเฉพาะ test case กลุ่มแรกนี้ ส่วน “ส่งคำตอบ” รันทั้งหมด'));
+    box.appendChild(fs);
+
+    var pv = el('div', { class: 'field' });
+    pv.appendChild(el('label', null, 'ตัวอย่างผลลัพธ์ที่นักศึกษาจะเห็น (test case แรก)'));
+    pv.appendChild(el('pre', { class: 'screen', id: 'sample-preview' }));
+    box.appendChild(pv);
+
+    renderPreview(); refreshValidation();
+  }
+
+  function renderAll() { renderList(); renderEditor(); }
+
+  /* ---------- actions ---------- */
+  function newId() {
+    var n = state.list.length + 1, id;
+    do { id = 'ex-' + n++; } while (state.list.some(function (x) { return x.id === id; }));
+    return id;
+  }
+  $('#add').addEventListener('click', function () {
+    state.list.push({ id: newId(), title: '', topic: '', level: 'ง่าย', desc: '', starter: '# เขียนโค้ดตรงนี้\n', sample: 1, tests: [{ inputs: [], expected: '' }] });
+    state.sel = state.list.length - 1; markDirty(); renderAll();
+    var t = $('#in-title'); if (t) t.focus();
+  });
+  function duplicateCurrent() {
+    var x = state.list[state.sel]; if (!x) return;
+    var c = clone(x); c.id = newId(); c.title = x.title + ' (สำเนา)';
+    state.list.splice(state.sel + 1, 0, c); state.sel++; markDirty(); renderAll();
+  }
+  function deleteCurrent() {
+    var x = state.list[state.sel]; if (!x) return;
+    if (!confirm('ลบโจทย์ “' + (x.title || x.id) + '” ใช่ไหม?\n(ยังไม่หายจากเว็บจนกว่าจะกด “บันทึกขึ้นเว็บ”)')) return;
+    state.list.splice(state.sel, 1);
+    if (state.sel >= state.list.length) state.sel = Math.max(0, state.list.length - 1);
+    markDirty(); renderAll();
+  }
+  $('#save').addEventListener('click', async function () {
+    var bad = firstInvalid();
+    if (bad) { state.sel = bad.index; renderAll(); setMsg('bad', bad.msg); return; }
+    if (!state.list.length && !confirm('ไม่มีโจทย์เหลือเลย เว็บจะกลับไปใช้โจทย์เริ่มต้นที่ฝังในโค้ด ต้องการบันทึกใช่ไหม?')) return;
+    var btn = $('#save'); btn.disabled = true; setMsg('', '');
+    try {
+      await api('api/exercises', { method: 'PUT', body: JSON.stringify({ exercises: state.list }) });
+      state.dirty = false; state.usingDefault = false; setStatus();
+      setMsg('ok', 'บันทึกแล้ว ' + state.list.length + ' ข้อ นักศึกษาจะเห็นโจทย์ใหม่เมื่อรีเฟรชหน้าเว็บ (อาจใช้เวลาไม่เกิน 1 นาที)');
+    } catch (err) {
+      if (err.status === 401) { setMsg('bad', err.message); logout(); }
+      else setMsg('bad', 'บันทึกไม่สำเร็จ: ' + err.message);
+    } finally { btn.disabled = false; }
+  });
+  $('#export').addEventListener('click', function () {
+    var blob = new Blob([JSON.stringify(state.list, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'piko-exercises-' + new Date().toISOString().slice(0, 10) + '.json';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+  });
+  $('#import').addEventListener('click', function () { $('#import-file').click(); });
+  $('#import-file').addEventListener('change', function (e) {
+    var f = e.target.files[0]; e.target.value = ''; if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function () {
+      try {
+        var d = JSON.parse(rd.result); if (d && !Array.isArray(d) && Array.isArray(d.exercises)) d = d.exercises;
+        if (!Array.isArray(d)) throw new Error('ไฟล์ต้องเป็นรายการโจทย์');
+        if (!confirm('นำเข้า ' + d.length + ' ข้อ และแทนที่รายการปัจจุบันทั้งหมดใช่ไหม? (ยังไม่ขึ้นเว็บจนกว่าจะกดบันทึก)')) return;
+        d.forEach(normalize); state.list = d; state.sel = 0; markDirty(); renderAll(); setMsg('', '');
+      } catch (err) { setMsg('bad', 'นำเข้าไม่สำเร็จ: ' + err.message); }
+    };
+    rd.readAsText(f);
+  });
+  window.addEventListener('beforeunload', function (e) { if (state.dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+  /* ---------- boot ---------- */
+  state.token = loadToken();
+  if (state.token) enterApp().catch(function () { logout(); }); else $('#pw').focus();
+})();
+</script>
+</body>
+</html>
