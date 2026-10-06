@@ -39,18 +39,74 @@
   /* ------------------------------------------------------------ storage (\u0E44\u0E21\u0E48\u0E1A\u0E31\u0E07\u0E04\u0E31\u0E1A) */
   // ความคืบหน้าแยกตามรหัสนักศึกษา
   var STORE_KEY = window.PIKO_USER && window.PIKO_USER.sid ? 'piko.v2.' + window.PIKO_USER.sid : 'piko.v2';
-  var store = { solved: {}, code: {}, current: null, files: null, active: 0 };
+  var store = { solved: {}, code: {}, codeAt: {}, current: null, files: null, filesAt: 0, active: 0, updatedAt: 0 };
   try {
     var raw = localStorage.getItem(STORE_KEY);
     if (raw) { var parsed = JSON.parse(raw); Object.keys(store).forEach(function (k) { if (parsed[k] != null) store[k] = parsed[k]; }); }
-  } catch (e) { /* \u0E44\u0E21\u0E48\u0E21\u0E35 storage \u0E01\u0E47\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19\u0E44\u0E14\u0E49\u0E1B\u0E01\u0E15\u0E34 */ }
+  } catch (e) { /* ไม่มี storage ก็ใช้งานได้ปกติ */ }
+
+  /* ------------------------------------------------------------ ซิงก์ความคืบหน้ากับเซิร์ฟเวอร์ (ข้ามอุปกรณ์/เบราว์เซอร์)
+   * - window.PIKO_PROGRESS ถูกโหลดมาก่อนเริ่มแอป (ดู index.html)
+   * - solved: รวมกันทุกเครื่อง (ไม่มีวันหาย) · code: เลือกฉบับที่แก้ล่าสุดเป็นรายข้อ · ไฟล์ Sandbox: เลือกชุดที่แก้ล่าสุด */
+  var SYNC_USER = (window.PIKO_USER && window.PIKO_USER.token) ? window.PIKO_USER : null;
+  var SYNC_KEYS = ['solved', 'code', 'codeAt', 'current', 'files', 'filesAt', 'active'];
+  var SYNC_DEF = { solved: {}, code: {}, codeAt: {}, current: null, files: null, filesAt: 0, active: 0 };
+  var syncTimer = null, syncDirty = false;
+  function syncPayload() { var p = {}; SYNC_KEYS.forEach(function (k) { p[k] = store[k]; }); return p; }
+  function syncNorm(o) { var p = {}; SYNC_KEYS.forEach(function (k) { p[k] = (o && o[k] !== undefined && o[k] !== null) ? o[k] : SYNC_DEF[k]; }); return p; }
+  (function mergeRemote() {
+    var R = window.PIKO_PROGRESS;
+    if (!SYNC_USER || !R) return;
+    var r = syncNorm(R.data), rAt = R.updatedAt || 0;
+    Object.keys(r.solved).forEach(function (k) { if (r.solved[k]) store.solved[k] = r.solved[k]; });
+    var ids = {};
+    Object.keys(store.code).forEach(function (k) { ids[k] = 1; });
+    Object.keys(r.code).forEach(function (k) { ids[k] = 1; });
+    Object.keys(ids).forEach(function (k) {
+      var hasL = store.code[k] != null, hasR = r.code[k] != null;
+      var lt = (store.codeAt && store.codeAt[k]) || 0, rt = r.codeAt[k] || 0;
+      if (hasR && (!hasL || rt > lt)) { store.code[k] = r.code[k]; store.codeAt[k] = rt; }
+    });
+    if (r.files && r.files.length && r.filesAt > (store.filesAt || 0)) { store.files = r.files; store.filesAt = r.filesAt; store.active = r.active; }
+    if (rAt > (store.updatedAt || 0)) { if (r.current) store.current = r.current; store.updatedAt = rAt; }
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) { /* ignore */ }
+    if (JSON.stringify(syncPayload()) !== JSON.stringify(r)) syncDirty = true;
+  })();
+  var lastFiles = JSON.stringify(store.files);
+  function pushNow(unload) {
+    if (!SYNC_USER || !syncDirty) return;
+    syncDirty = false; clearTimeout(syncTimer);
+    var body = syncPayload();
+    var text = JSON.stringify({ data: body, updatedAt: store.updatedAt });
+    if (text.length > 190000) { body.files = null; body.filesAt = 0; text = JSON.stringify({ data: body, updatedAt: store.updatedAt }); }
+    fetch('api/progress', {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer ' + SYNC_USER.token },
+      body: text,
+      keepalive: !!unload && text.length < 60000
+    }).then(function (res) {
+      if (res.status === 401) SYNC_USER = null;        // หมดอายุ → ครั้งหน้าที่เปิดเว็บจะให้ล็อกอินใหม่
+      else if (!res.ok && res.status !== 413) syncDirty = true;
+    }).catch(function () { syncDirty = true; });       // ออฟไลน์ → ลองใหม่ภายหลัง
+  }
   var saveTimer = null;
+  function persist() {
+    saveTimer = null;
+    var fs = JSON.stringify(store.files);
+    if (fs !== lastFiles) { store.filesAt = Date.now(); lastFiles = fs; }
+    store.updatedAt = Date.now();
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) { /* ignore */ }
+    if (SYNC_USER) { syncDirty = true; clearTimeout(syncTimer); syncTimer = setTimeout(pushNow, 4000); }
+  }
   function save() {
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(function () {
-      try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) { /* ignore */ }
-    }, 250);
+    saveTimer = setTimeout(persist, 250);
   }
+  function flushAll() { if (saveTimer) { clearTimeout(saveTimer); persist(); } pushNow(true); }
+  window.addEventListener('pagehide', flushAll);
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') flushAll(); });
+  setInterval(function () { pushNow(false); }, 30000);
+  if (syncDirty) syncTimer = setTimeout(pushNow, 1500);
 
   /* ------------------------------------------------------------ icons */
   var ICON = {
@@ -964,7 +1020,7 @@ def _grade_io(code, tests_json, limit=3.0):
     '<button type="button" class="btn btn-ghost-dark btn-sm" id="ex-sample">\u0E17\u0E14\u0E2A\u0E2D\u0E1A\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07 <span class="kbd" style="background:rgba(255,255,255,.14)">F5</span></button>' +
     '<button type="button" class="btn btn-sky btn-sm" id="ex-submit">\u0E2A\u0E48\u0E07\u0E04\u0E33\u0E15\u0E2D\u0E1A</button>';
   exEditor.setLabel('solution.py');
-  exEditor.onChange(function (v) { if (exCurrent) { store.code[exCurrent.id] = v; save(); } });
+  exEditor.onChange(function (v) { if (exCurrent) { store.code[exCurrent.id] = v; store.codeAt[exCurrent.id] = Date.now(); save(); } });
 
   // \u0E41\u0E2A\u0E14\u0E07\u0E1C\u0E25\u0E01\u0E32\u0E23\u0E23\u0E31\u0E19 \u0E42\u0E14\u0E22\u0E17\u0E33\u0E15\u0E31\u0E27\u0E2B\u0E19\u0E32/\u0E40\u0E2D\u0E35\u0E22\u0E07/\u0E02\u0E35\u0E14\u0E40\u0E2A\u0E49\u0E19\u0E43\u0E15\u0E49\u0E43\u0E2B\u0E49\u0E04\u0E48\u0E32\u0E17\u0E35\u0E48\u0E1C\u0E39\u0E49\u0E43\u0E0A\u0E49\u0E1E\u0E34\u0E21\u0E1E\u0E4C
   function transcriptHtml(text, inputs) {

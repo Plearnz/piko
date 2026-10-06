@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap" rel="stylesheet">
-<script>(function(){if(window.parent!==window)return;var s=null;try{s=JSON.parse(sessionStorage.getItem("piko.session.v3")||localStorage.getItem("piko.session.v3")||"null")}catch(e){}if(s&&s.sid)location.replace("index.html")})();</script>
+<script>(function(){if(window.parent!==window)return;var s=null;try{s=JSON.parse(sessionStorage.getItem("piko.session.v3")||localStorage.getItem("piko.session.v3")||"null")}catch(e){}if(s&&s.sid&&s.token)location.replace("index.html")})();</script>
 <script>(function(){var t=null;try{t=localStorage.getItem("piko.theme")}catch(e){}
 if(t!=="dark"&&t!=="light"){t=(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light"}
 document.documentElement.setAttribute("data-theme",t)})();</script>
@@ -392,6 +392,8 @@ body,.art,.panel,input,.badge,.notice{transition:background-color .3s ease,color
       e_passEmpty:"กรุณากรอกรหัสผ่าน",
       e_wrongPass:"รหัสผ่านไม่ถูกต้อง ลองอีกครั้ง",
       e_noUser:"ไม่พบรหัสนักศึกษานี้ ตรวจสอบอีกครั้ง หรือลงทะเบียนก่อน",
+      e_rate:"ลองหลายครั้งเกินไป กรุณารอสักครู่แล้วลองใหม่",
+      e_server:"เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ ลองใหม่อีกครั้ง",
       e_storage:"บันทึกข้อมูลในเบราว์เซอร์นี้ไม่ได้ ลองเปิดหน้าเว็บแบบปกติ (ไม่ใช่โหมดส่วนตัว)",
       regDone:"สร้างบัญชีแล้ว เข้าสู่ระบบด้วยรหัสผ่านที่เพิ่งตั้งได้เลย"
     },
@@ -426,6 +428,8 @@ body,.art,.panel,input,.badge,.notice{transition:background-color .3s ease,color
       e_passEmpty:"Enter your password",
       e_wrongPass:"Incorrect password. Try again",
       e_noUser:"No account found for this student ID. Check it, or register first",
+      e_rate:"Too many attempts. Please wait a moment and try again",
+      e_server:"Can't reach the server. Please try again",
       e_storage:"This browser can't save data. Open the page in a normal (non-private) window",
       regDone:"Account created. Sign in with the password you just set"
     }
@@ -435,7 +439,7 @@ body,.art,.panel,input,.badge,.notice{transition:background-color .3s ease,color
   function write(store,key,val){try{store.setItem(key,JSON.stringify(val));return true}catch(e){return false}}
   function remove(store,key){try{store.removeItem(key)}catch(e){}}
   function users(){return read(localStorage,USERS_KEY)||{}}
-  function session(){return read(sessionStorage,SESSION_KEY)||read(localStorage,SESSION_KEY)}
+  function session(){var s=read(sessionStorage,SESSION_KEY)||read(localStorage,SESSION_KEY);return s&&s.token?s:null}
 
   async function hash(id,pw){
     var data=new TextEncoder().encode(id+"::"+pw);
@@ -534,21 +538,37 @@ body,.art,.panel,input,.badge,.notice{transition:background-color .3s ease,color
     });
   });
 
+  // ---- server ----
+  async function api(path,body){
+    var res;
+    try{res=await fetch(path,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)})}
+    catch(e){return {status:0,data:{code:"server"}}}
+    var data=null;try{data=await res.json()}catch(e){}
+    return {status:res.status,data:data||{code:"server"}};
+  }
+  var CODE_KEY={sidTaken:"e_sidTaken",badSid:"e_sidFmt",badName:"e_name",badPass:"e_pass",rate:"e_rate",server:"e_server",noDb:"e_server",noUser:"e_noUser",wrongPass:"e_wrongPass",badLogin:"e_wrongPass"};
+
   // ---- register ----
   $("form-register").addEventListener("submit",async function(e){
     e.preventDefault();
     var name=$("reg-name").value.trim(), sid=normSid($("reg-user").value),
         pw=$("reg-pass").value, pw2=$("reg-pass2").value, terms=$("reg-terms").checked;
-    var ok=true, list=users();
+    var ok=true;
     ok=setErr("reg-name","err-reg-name",name?"":"e_name")&&ok;
-    ok=setErr("reg-user","err-reg-user",!sid?"e_sid":!SID.test(sid)?"e_sidFmt":list[sid]?"e_sidTaken":"")&&ok;
+    ok=setErr("reg-user","err-reg-user",!sid?"e_sid":!SID.test(sid)?"e_sidFmt":"")&&ok;
     ok=setErr("reg-pass","err-reg-pass",pw.length<8?"e_pass":"")&&ok;
     ok=setErr("reg-pass2","err-reg-pass2",pw2!==pw?"e_pass2":"")&&ok;
     ok=setErr("reg-terms","err-reg-terms",terms?"":"e_terms")&&ok;
     if(!ok){var bad=this.querySelector('[aria-invalid="true"]'); if(bad) bad.focus(); return;}
-    list[sid]={name:name,sid:sid,hash:await hash(sid,pw),created:Date.now()};
-    if(!write(localStorage,USERS_KEY,list)){ setNotice("reg-done","e_storage","bad"); return; }
-    setNotice("reg-done",null);
+    var btn=this.querySelector(".primary"); btn.disabled=true; setNotice("reg-done",null);
+    var r=await api("api/register",{sid:sid,name:name,password:pw});
+    btn.disabled=false;
+    if(r.status!==200){
+      var key=CODE_KEY[r.data.code]||"e_server";
+      if(r.data.code==="sidTaken"){setErr("reg-user","err-reg-user",key);$("reg-user").focus()}
+      else setNotice("reg-done",key,"bad");
+      return;
+    }
     this.reset();
     $("log-user").value=sid;
     setNotice("login-hint","regDone","ok");
@@ -566,10 +586,15 @@ body,.art,.panel,input,.badge,.notice{transition:background-color .3s ease,color
     ok=setErr("log-pass","err-log-pass",pw?"":"e_passEmpty")&&ok;
     if(!ok){var bad=this.querySelector('[aria-invalid="true"]'); if(bad) bad.focus(); return;}
     var btn=this.querySelector(".primary"); btn.disabled=true; btn.textContent=t("logBusy");
-    var u=users()[sid], good=u && u.hash===await hash(sid,pw);
+    var r=await api("api/login",{sid:sid,password:pw});
+    if(r.status===404&&r.data.code==="noUser"){
+      // บัญชีเก่าที่สมัครไว้ในเครื่องนี้ (ก่อนมีระบบกลาง) → ย้ายขึ้นเซิร์ฟเวอร์ให้อัตโนมัติ
+      var lu=users()[sid];
+      if(lu&&lu.hash===await hash(sid,pw)) r=await api("api/register",{sid:sid,name:lu.name,password:pw});
+    }
     btn.disabled=false; btn.textContent=t("logBtn");
-    if(!good){ setNotice("login-error",u?"e_wrongPass":"e_noUser","bad"); return; }
-    write($("log-remember").checked?localStorage:sessionStorage,SESSION_KEY,{name:u.name,sid:u.sid});
+    if(r.status!==200||!r.data.token){ setNotice("login-error",CODE_KEY[r.data.code]||"e_server","bad"); return; }
+    write($("log-remember").checked?localStorage:sessionStorage,SESSION_KEY,{name:r.data.user.name,sid:r.data.user.sid,token:r.data.token});
     this.reset(); setNotice("login-hint",null);
     if(window.parent!==window){try{window.parent.postMessage({type:"piko-login"},location.origin)}catch(err){}}
     else{location.replace("index.html")}

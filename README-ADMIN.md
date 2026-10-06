@@ -1,19 +1,16 @@
-# PIKO + ระบบ Admin (Cloudflare Workers)
+# PIKO + บัญชีกลาง + ระบบ Admin (Cloudflare Workers + D1)
 
 โครงสร้าง
 - public/        หน้าเว็บทั้งหมด (index.html, admin.html, login.html, css, js, pyodide, assets)
-- src/worker.js  backend: /api/exercises และ /api/admin/login
-- wrangler.jsonc ค่าตั้งของโปรเจกต์ (ชื่อ, KV)
+- src/worker.js  backend: สมัคร/ล็อกอิน, ซิงก์ความคืบหน้า, โจทย์, Admin
+- wrangler.jsonc ค่าตั้งของโปรเจกต์ (ชื่อ, ฐานข้อมูล D1)
 
-ขั้นตอน
-1. Cloudflare -> Storage & Databases -> KV -> Create -> ตั้งชื่ออะไรก็ได้ -> คัดลอก ID (ตัวอักษร+ตัวเลข 32 ตัว)
-2. (ใส่ KV ID ใน wrangler.jsonc ให้แล้ว)
-3. อัพทุกไฟล์ขึ้น GitHub repo (วางโครงสร้างโฟลเดอร์ให้เหมือนเดิม ให้ wrangler.jsonc อยู่ที่ root ของ repo)
-4. Cloudflare -> Workers & Pages -> Create application -> Import a repository -> เลือก repo
-   - Project name: piko  (ต้องตรงกับ "name" ใน wrangler.jsonc)
-   - Build command: เว้นว่าง / Deploy command: npx wrangler deploy (ค่าเริ่มต้น)
-5. หลัง deploy: โปรเจกต์ -> Settings -> Variables and Secrets -> Add -> ชนิด Secret
-   ชื่อ ADMIN_PASSWORD ค่า = รหัสผ่าน Admin -> Deploy
-6. เปิด https://<ชื่อโปรเจกต์>.<subdomain>.workers.dev/admin
+ตั้งค่า
+1. D1: Storage & Databases -> D1 -> Create database -> คัดลอก Database ID ใส่ใน wrangler.jsonc (ใส่แล้ว)
+2. Secret: โปรเจกต์ piko -> Settings -> Variables and Secrets -> Add -> ชนิด Secret
+   ชื่อ ADMIN_PASSWORD ค่า = รหัสผ่าน Admin (ตั้งไว้แล้วถ้าเคยทำ ไม่ต้องทำซ้ำ)
+3. ตารางในฐานข้อมูลสร้างเองอัตโนมัติ
 
-เปลี่ยนรหัสผ่าน: แก้ค่า ADMIN_PASSWORD แล้ว deploy ใหม่ (โทเค็นเก่าใช้ไม่ได้ทันที)
+ใช้งาน
+- นักศึกษา: สมัคร/ล็อกอินด้วยรหัสนักศึกษา ความคืบหน้าตามไปทุกเครื่อง
+- Admin: https://<โปรเจกต์>.workers.dev/admin  -> แก้โจทย์, ดูรายชื่อนักศึกษา, รีเซ็ตรหัสผ่าน

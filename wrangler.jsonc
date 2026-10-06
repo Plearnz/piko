@@ -7,7 +7,7 @@
     "binding": "ASSETS",
     "run_worker_first": ["/api/*"]
   },
-  "kv_namespaces": [
-    { "binding": "PIKO_KV", "id": "9597433cf894446bb7c5c1e62b52997c" }
+  "d1_databases": [
+    { "binding": "PIKO_DB", "database_name": "piko-db", "database_id": "f6c33e6d-f7df-4257-af0d-2a450d4129dd" }
   ]
 }

@@ -3,7 +3,7 @@
 <script>(function(){var s=null;try{s=JSON.parse(sessionStorage.getItem("piko.session.v3")||localStorage.getItem("piko.session.v3")||"null")}catch(e){}
 var t=null;try{t=localStorage.getItem("piko.theme")}catch(e){}if(t==="dark"||t==="light")document.documentElement.setAttribute("data-theme",t);
 try{window.PIKO_LANG=localStorage.getItem("piko.lang")==="en"?"en":"th"}catch(e){window.PIKO_LANG="th"}document.documentElement.lang=window.PIKO_LANG;
-window.PIKO_USER=(s&&s.sid)?s:null;if(!window.PIKO_USER)document.documentElement.classList.add("auth-locked");})();</script>
+window.PIKO_USER=(s&&s.sid&&s.token)?s:null;if(!window.PIKO_USER)document.documentElement.classList.add("auth-locked");})();</script>
 <style>html.auth-locked,html.auth-locked body{overflow:hidden}
 .auth-gate{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:1000;background:#FFF9D2;display:block}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .auth-gate{background:#010736}}:root[data-theme="dark"] .auth-gate{background:#010736}</style>
@@ -341,32 +341,40 @@ CPE 2</div>
 <script>window.PIKO_PYODIDE_URL = 'pyodide/'; window.PIKO_PYODIDE_STDLIB = 'pyodide/python_stdlib.wasm';</script>
 <script src="js/exercises-data.js"></script>
 <script>
-/* โหลดโจทย์ล่าสุดจาก /api/exercises ก่อนเริ่มแอป
+/* โหลดโจทย์ล่าสุด + ความคืบหน้าของผู้ใช้จากเซิร์ฟเวอร์ ก่อนเริ่มแอป
  * ถ้า API ใช้ไม่ได้ → ใช้โจทย์ที่เคยโหลดไว้ในเครื่อง → ถ้าไม่มีอีก ใช้ข้อมูลเริ่มต้นใน js/exercises-data.js */
 (function(){
-  var CACHE="piko.exercises.cache";
+  var CACHE="piko.exercises.cache",KEY="piko.session.v3",u=window.PIKO_USER;
+  function valid(l){return Array.isArray(l)&&l.length>0;}
+  function cached(){try{var c=JSON.parse(localStorage.getItem(CACHE)||"null");return valid(c)?c:null}catch(e){return null}}
+  function getJson(url,headers){
+    var req=fetch(url,{cache:"no-store",headers:headers||{}}).then(function(r){
+      return r.json().catch(function(){return null}).then(function(d){return{status:r.status,data:d}});
+    });
+    var to=new Promise(function(res){setTimeout(function(){res({status:0,data:null})},4000)});
+    return Promise.race([req,to]).catch(function(){return{status:0,data:null}});
+  }
   function start(){
     ["js/app.js","js/legal.js","js/i18n.js"].forEach(function(src){
       var s=document.createElement("script");s.src=src;s.async=false;document.body.appendChild(s);
     });
   }
-  function valid(l){return Array.isArray(l)&&l.length>0;}
-  var done=false;
-  function finish(list){
-    if(done)return;done=true;
-    if(valid(list))window.PIKO_EXERCISES=list;
+  Promise.all([
+    getJson("api/exercises"),
+    u?getJson("api/progress",{authorization:"Bearer "+u.token}):Promise.resolve(null)
+  ]).then(function(rs){
+    var ex=rs[0],pr=rs[1];
+    if(ex.status===200&&ex.data){
+      var list=ex.data.exercises;
+      if(valid(list)){window.PIKO_EXERCISES=list;try{localStorage.setItem(CACHE,JSON.stringify(list))}catch(e){}}
+      else{try{localStorage.removeItem(CACHE)}catch(e){}}
+    }else{var c=cached();if(c)window.PIKO_EXERCISES=c;}
+    if(pr){
+      if(pr.status===401){try{localStorage.removeItem(KEY);sessionStorage.removeItem(KEY)}catch(e){}location.reload();return;}
+      if(pr.status===200&&pr.data)window.PIKO_PROGRESS={data:pr.data.data,updatedAt:pr.data.updatedAt||0};
+    }
     start();
-  }
-  function fromCache(){try{var c=JSON.parse(localStorage.getItem(CACHE)||"null");return valid(c)?c:null}catch(e){return null}}
-  var timer=setTimeout(function(){finish(fromCache())},4000);
-  fetch("api/exercises",{cache:"no-store"}).then(function(r){
-    if(!r.ok)throw new Error(r.status);return r.json();
-  }).then(function(d){
-    clearTimeout(timer);
-    var list=d&&d.exercises;
-    if(valid(list)){try{localStorage.setItem(CACHE,JSON.stringify(list))}catch(e){}finish(list)}
-    else{try{localStorage.removeItem(CACHE)}catch(e){}finish(null)}
-  }).catch(function(){clearTimeout(timer);finish(fromCache())});
+  });
 })();
 </script>
 
